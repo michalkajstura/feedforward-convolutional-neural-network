@@ -46,24 +46,9 @@ def cross_entropy_loss(x, labels):
     return np.mean(log_softmax)
 
 
-def batchnorm(x, gamma, beta, running_stats, mode='test', eps=1e-5, momentum=0.9):
-    N, D = x.shape
-    running_mean = running_stats.get('running_mean', np.zeros(D, dtype=x.dtype))
-    running_var = running_stats.get('running_var', np.zeros(D, dtype=x.dtype))
-
-    if mode == 'train':
-        sample_mean = x.mean(axis=0)
-        sample_var = np.sum((x - sample_mean) ** 2, axis=0) / N
-        running_mean = momentum * running_mean + (1 - momentum) * sample_mean
-        running_var = momentum * running_var + (1 - momentum) * sample_var
-        x_hat = (x - sample_mean) / np.sqrt(sample_var + eps)
-    elif mode == 'train':
-        x_hat = (x - running_mean) / np.sqrt(running_var + eps)
-    else:
-        raise ValueError('Invalid mode: %s' % mode)
-
-    running_stats['running_mean'] = running_mean
-    running_stats['running_var'] = running_var
-
-    return x_hat * gamma + beta
+def batchnorm(x, gamma, beta, running_mean, running_var, eps=1e-5):
+    N, C, H, W = x.shape
+    x_normalized = x - running_mean.reshape((1, C, 1, 1))
+    x_normalized /= np.sqrt(running_var.reshape((1, C, 1, 1)) + eps)
+    return x_normalized * gamma.reshape((1, C, 1, 1)) + beta.reshape((1, C, 1, 1))
 
